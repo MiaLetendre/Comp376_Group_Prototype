@@ -8,7 +8,7 @@ public class GameManager : MonoBehaviour
 
     public GameObject gameOverPanel;
     public GameObject winPanel;
-    public MonoBehaviour camera;
+    public MonoBehaviour gameCamera;
     public Throwing throwScript;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -37,7 +37,7 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         throwScript.totalProjectiles = throwScript.maxProjectiles;
         Cursor.visible = true;
-        camera.enabled = false;
+        gameCamera.enabled = false;
         Time.timeScale = 0f;
         playerRb.linearVelocity = Vector2.zero;
     }
@@ -57,7 +57,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        camera.enabled = true;
+        gameCamera.enabled = true;
        
         playerRb.position = Vector2.zero;
         playerRb.linearVelocity = Vector2.zero;

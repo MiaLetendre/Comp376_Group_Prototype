@@ -1,3 +1,4 @@
+using NUnit.Framework;
 using UnityEngine;
 
 public class Swing : MonoBehaviour
@@ -11,6 +12,8 @@ public class Swing : MonoBehaviour
     private Vector3 swingPoint; // Point where the swing is aimed
     private SpringJoint springJoint; // Spring joint for the swing
     public PlayerMovement movementScript; // Reference to the PlayerMovement script
+    public float continuousForwardForce = 10f; // Initial forward force when starting the swing
+    public float groundedUpwardForce = 5f; // Upward force applied when starting the swing
 
     [Header("Prediction")]
     public RaycastHit predictionHit; // Raycast hit information for the swing
@@ -29,10 +32,6 @@ public class Swing : MonoBehaviour
     public float extendCableSpeed = 10f; // Speed at which the cable extends
     public Transform orientation; // Reference to the player's orientation for thrust direction
 
-    void Start()
-    {
-        
-    }
 
     // Update is called once per frame
     void Update()
@@ -45,12 +44,17 @@ public class Swing : MonoBehaviour
         {
             stopSwing();
         }
+       
 
         checkSwingPoint();
 
+    }
+
+    void FixedUpdate()
+    {
         if (springJoint != null)
         {
-            // Extend the cable length over time
+            // Apply continuous forward force while swinging
             swingGearMovement();
         }
     }
@@ -62,6 +66,12 @@ public class Swing : MonoBehaviour
 
     void startSwing()
     {
+
+        if (springJoint != null)
+        {
+            
+            return;
+        }
         if (predictionHit.point == Vector3.zero)
         {
             //nothing found to grapple
@@ -73,65 +83,64 @@ public class Swing : MonoBehaviour
 
         movementScript.activeGrapple = true;
         movementScript.swinging = true;
-        /*
-        RaycastHit hit;
-        Ray screenRay = Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        //cahnged to cam from screenray
-        if (Physics.Raycast(cam.position, cam.forward, out hit, maxSwingDistance, whatIsGrappleable))
+
+
+
+        swingPoint = predictionHit.point;
+        springJoint = player.gameObject.AddComponent<SpringJoint>();
+        springJoint.autoConfigureConnectedAnchor = false;
+        springJoint.connectedAnchor = swingPoint;
+
+        float distanceFromPoint = Vector3.Distance(player.position, swingPoint);
+
+        // The distance grapple will try to keep from grapple point. 
+        springJoint.maxDistance = distanceFromPoint * 0.7f;
+        springJoint.minDistance = distanceFromPoint * 0.1f;
+
+        // need to adjust these 
+        springJoint.spring = 12f;
+        springJoint.damper = 7f;
+        springJoint.massScale = 4.5f;
+
+        lineRenderer.positionCount = 2;
+
+        if (predictionPoint != null)
         {
-        */
-    
-
-            movementScript.activeGrapple = true;
-            movementScript.swinging = true;
-
-            swingPoint = predictionHit.point;
-            springJoint = player.gameObject.AddComponent<SpringJoint>();
-            springJoint.autoConfigureConnectedAnchor = false;
-            springJoint.connectedAnchor = swingPoint;
-
-            float distanceFromPoint = Vector3.Distance(player.position, swingPoint);
-
-            // The distance grapple will try to keep from grapple point. 
-            springJoint.maxDistance = distanceFromPoint * 0.8f;
-            springJoint.minDistance = distanceFromPoint * 0.25f;
-
-            // need to adjust these 
-            springJoint.spring = 4.5f;
-            springJoint.damper = 7f;
-            springJoint.massScale = 4.5f;
-
-            lineRenderer.positionCount = 2;
-
-            if (predictionPoint != null)
-            {
-                predictionPoint.gameObject.SetActive(false);
-            }
-        
-        
-        /* if animation is used later
-        // Start the swing animation
-        Animator animator = GetComponent<Animator>();
-        if (animator != null)
-        {
-            animator.SetTrigger("Swing");
+            predictionPoint.gameObject.SetActive(false);
         }
-        */
+
+        bool isGrounded = movementScript.isGroundedRaw; // Access the isGroundedRaw variable from PlayerMovement
+
+        if (isGrounded)
+        {
+            if (rb.linearVelocity.y < 0f)
+            {
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            }   
+            rb.AddForce(Vector3.up * groundedUpwardForce, ForceMode.Impulse);
+        }
+        
+        
+        
+        
+       
     }
 
     void stopSwing()
     {
+        if (movementScript == null || !movementScript.activeGrapple || !movementScript.swinging)
+        {
+            return;
+        }
         movementScript.activeGrapple = false;
         movementScript.swinging = false;
         lineRenderer.positionCount = 0;
-        if (springJoint != null)
+        foreach (SpringJoint joint in player.GetComponents<SpringJoint>())
         {
-            Destroy(springJoint);
+            Destroy(joint);
         }
-        else
-        {
-            Debug.Log("No spring joint to destroy.");
-        }
+        
+        springJoint = null;
         /* if animation is used later
         // Stop the swing animation
         Animator animator = GetComponent<Animator>();
@@ -153,39 +162,54 @@ public class Swing : MonoBehaviour
 
     public void swingGearMovement()
     {
+
+        Vector3 directionToSwingPoint = (swingPoint - transform.position).normalized;
+        rb.AddForce(directionToSwingPoint * continuousForwardForce * Time.fixedDeltaTime, ForceMode.Force);
         //thrust
         if (Input.GetKey(KeyCode.D))
         {
-            rb.AddForce(orientation.right * horizontalThrustForce * Time.deltaTime);
+            rb.AddForce(orientation.right * horizontalThrustForce * Time.fixedDeltaTime);
         }
         if (Input.GetKey(KeyCode.A))
         {
-            rb.AddForce(-orientation.right * horizontalThrustForce * Time.deltaTime);
+            rb.AddForce(-orientation.right * horizontalThrustForce * Time.fixedDeltaTime);
         }
         if (Input.GetKey(KeyCode.W))
         {
-            rb.AddForce(orientation.forward * verticalThrustForce * Time.deltaTime);
+            Vector3 thrustDirection;
+            bool isGrounded = movementScript.isGroundedRaw;
+            if (isGrounded)
+            {
+                thrustDirection = (orientation.forward + Vector3.up * .3f).normalized;
+            }
+            else
+            {
+                thrustDirection = orientation.forward;
+            }
+            
+            rb.AddForce(thrustDirection * verticalThrustForce * Time.deltaTime);
+            
         }
       
 
         //shorten cable
-        if (Input.GetKey(KeyCode.Space))
+        if (Input.GetKey(KeyCode.LeftControl))
         {
-            Vector3 directionToSwingPoint = (swingPoint - transform.position).normalized;
-            rb.AddForce(directionToSwingPoint * verticalThrustForce * Time.deltaTime);
+            rb.AddForce(directionToSwingPoint * verticalThrustForce * Time.fixedDeltaTime);
 
             float distanceToSwingPoint = Vector3.Distance(transform.position, swingPoint);
 
-            springJoint.maxDistance = distanceToSwingPoint * 0.8f;
-            springJoint.minDistance = distanceToSwingPoint * 0.25f;
+            springJoint.maxDistance = distanceToSwingPoint * 0.7f;
+            springJoint.minDistance = distanceToSwingPoint * 0.1f;
         }
 
-        if (Input.GetKey(KeyCode.S))
+        //extend cable
+        if (Input.GetKey(KeyCode.LeftShift))
         {
-            float distanceToSwingPoint = Vector3.Distance(transform.position, swingPoint) + extendCableSpeed * Time.deltaTime;
+            float distanceToSwingPoint = Vector3.Distance(transform.position, swingPoint) + extendCableSpeed * Time.fixedDeltaTime;
 
-            springJoint.maxDistance = distanceToSwingPoint * 0.8f;
-            springJoint.minDistance = distanceToSwingPoint * 0.25f;
+            springJoint.maxDistance = distanceToSwingPoint * 0.7f;
+            springJoint.minDistance = distanceToSwingPoint * 0.1f;
         }
 
     }

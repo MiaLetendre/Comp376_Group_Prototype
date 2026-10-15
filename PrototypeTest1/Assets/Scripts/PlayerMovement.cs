@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Cinemachine;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -13,7 +14,10 @@ public class PlayerMovement : MonoBehaviour
     public float walkSpeed;
     public float groundDrag;
     public float stopSpeedDamping = 0f;
-    
+
+    [Header("Camera")]
+    public CinemachineCamera gameCamera;
+
     [Header("Jumping")]
     public LayerMask whatIsGround;
     bool grounded;
@@ -24,6 +28,12 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Sprinting")]    
     public float sprintSpeed;
+
+    [Header("Steps")]
+    public GameObject stepRayLower;
+    public GameObject stepRayUpper;
+    public float stepHeight = 0.5f;
+    public float stepSmooth = 2f;
 
     [Header("Air Movement")]
 
@@ -38,7 +48,11 @@ public class PlayerMovement : MonoBehaviour
     public float jumpForce;
     public float jumpCooldown;
     public float airMultiplier;
-     bool readyToJump = true;
+    public float fallMultiplier = 2.5f;
+    bool readyToJump = true;
+    public float groundCheckDistance = 0.3f;
+    public bool isGroundedRaw;
+    private float groundedTimer;
 
     [Header("Keys")]
     public KeyCode jumpKey = KeyCode.Space;
@@ -74,8 +88,20 @@ public class PlayerMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
-        grounded = Physics.Raycast(transform.position, Vector3.down, playerHeight * 0.5f + 0.1f, whatIsGround);
+        //sphere casting instead of ray casting because it is more reliable for ground detection, especially on uneven terrain
+        Vector3 sphereCastOrigin = transform.position + Vector3.up * (groundCheckDistance + 0.1f); 
+        float castDistance = playerHeight * .5f + groundCheckDistance;
+        isGroundedRaw = Physics.SphereCast(sphereCastOrigin, groundCheckDistance, Vector3.down, out RaycastHit hit, castDistance, whatIsGround);
+
+        if (isGroundedRaw)
+        {
+            groundedTimer = 0.05f;
+        }
+        else
+        {
+            groundedTimer -= Time.deltaTime;
+        }
+        grounded = groundedTimer > 0f;
         
         if (grounded && readyToJump)
         {
@@ -85,19 +111,16 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.linearDamping = stopSpeedDamping;
         }
+
+        float cleanYVelocity = Mathf.Abs(rb.linearVelocity.y) < 0.01f ? 0f : rb.linearVelocity.y;
+        lastY = cleanYVelocity;
+
         MoveInput();
         SpeedControl();
-        MoveInput();
+  
+        
 
-        if (jumping )
-        {
-            
-            if (lastY < rb.linearVelocity.y)
-            {
-                rb.mass  = rb.mass* 2;
-            }
-
-        }
+        
             
         
     }
@@ -105,6 +128,8 @@ public class PlayerMovement : MonoBehaviour
     void FixedUpdate()
     {
         MovePlayer();
+        SnappyGravity();
+        goUpSteps();
     }
 
     //inputs for movements
@@ -113,7 +138,6 @@ public class PlayerMovement : MonoBehaviour
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
         jumping = Input.GetKey(jumpKey);
-        lastY = rb.linearVelocity.y;
 
     
         if (Input.GetKey(jumpKey) && readyToJump && grounded)
@@ -141,10 +165,11 @@ public class PlayerMovement : MonoBehaviour
         
         if (grounded)
         {
-            if (moveDirection.magnitude > .01)
+            if (moveDirection.magnitude > .01f)
             {
                 rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
-            } else{//breaking when no input is given
+            } else{
+                //breaking when no input is given
                 Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
                 Vector3 targetVel =Vector3.Lerp(flatVel, Vector3.zero, Time.fixedDeltaTime * stopSpeedDamping);
                 rb.linearVelocity = new Vector3(targetVel.x, rb.linearVelocity.y, targetVel.z);
@@ -155,6 +180,52 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
         }
+    }
+
+    
+
+    //makes the player fall faster than the default gravity, giving a snappier feel to the jump
+    void SnappyGravity()
+    {
+        if (activeGrapple || swinging)
+        {
+            return;
+        }
+
+        if (rb.linearVelocity.y < 0f)
+        {
+            rb.AddForce(Vector3.down * (fallMultiplier - 1) * Physics.gravity.magnitude * .5F, ForceMode.Acceleration);
+        }
+    }
+
+    void goUpSteps()
+    {
+        if (activeGrapple || swinging)
+        {
+            return;
+        }
+
+        Vector3 movementDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
+
+        RaycastHit hitLower;
+        RaycastHit hitUpper;
+        Debug.DrawRay(stepRayLower.transform.position, movementDirection * 0.5f, Color.red);
+        Debug.DrawRay(stepRayUpper.transform.position, movementDirection * 0.5f, Color.blue);
+        
+        if (Physics.Raycast(stepRayLower.transform.position, movementDirection, out hitLower, 0.5f))
+        {
+            if (!Physics.Raycast(stepRayUpper.transform.position, -movementDirection, out hitUpper, 0.5f))
+            {
+                Vector3 stepUpPosition = rb.position + Vector3.up * (stepHeight *Time.fixedDeltaTime * stepSmooth);
+                rb.MovePosition(stepUpPosition);
+
+                if(rb.linearVelocity.y < 0f)
+                {
+                    rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                }
+            }
+        }
+
     }
 
     //Controlls the player speed
@@ -218,13 +289,27 @@ public class PlayerMovement : MonoBehaviour
            
         }
 
-        if (Mathf.Abs(desiredMoveSpeed- moveSpeed) >4f)
+        /*
+        if (!grounded)
         {
-            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 3f);
+            var orbitalFollow = gameCamera.GetCinemachineComponent(CinemachineCore.Stage.Body) as CinemachineOrbitalFollow;
+            orbitalFollow.Orbits.Bottom.Height = -2f;
         }
         else
         {
-            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 10f);        
+            var orbitalFollow = gameCamera.GetCinemachineComponent(CinemachineCore.Stage.Body) as CinemachineOrbitalFollow;
+            orbitalFollow.Orbits.Bottom.Height = 0f;
+        }
+        */
+
+        //slowly lerp to the desired move speed, if the difference is too big, lerp slower
+        if (Mathf.Abs(desiredMoveSpeed- moveSpeed) >4f)
+        {
+            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 1f);
+        }
+        else
+        {
+            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 2f);        
         }
     }
 

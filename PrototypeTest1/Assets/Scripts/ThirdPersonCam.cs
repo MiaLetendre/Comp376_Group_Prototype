@@ -24,6 +24,9 @@ public class ThirdPersonCam : MonoBehaviour
     [Header("Is Combat Active")]
     public bool isCombatActive;
 
+    private float horizontalInput;
+    private float verticalInput;
+
 
     public enum CameraStyle
     {
@@ -49,6 +52,9 @@ public class ThirdPersonCam : MonoBehaviour
 
     void Update()
     {
+        horizontalInput = -Input.GetAxis("Horizontal");
+        verticalInput = -Input.GetAxis("Vertical");
+
         //rotate orientation
         if (Input.GetKeyDown(KeyCode.Alpha1)){
             switchCameraStyle(CameraStyle.Basic);
@@ -64,26 +70,18 @@ public class ThirdPersonCam : MonoBehaviour
 
         //orientation of the camera, related to the player
         Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
-        orientation.forward = viewDir.normalized;
-
-        //rotate the player
-        if (currentStyle == CameraStyle.Basic){
-            float horizontalInput = -Input.GetAxis("Horizontal");
-            float verticalInput = -Input.GetAxis("Vertical");
-            Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
-
-            if (inputDir != Vector3.zero){
-                playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.fixedDeltaTime * rotationSpeed);
-            }
-        } else if (currentStyle == CameraStyle.Combat && isCombatActive){
-            float horizontalInput = -Input.GetAxis("Horizontal");
-            float verticalInput = -Input.GetAxis("Vertical");
-            Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
-
-            if (inputDir != Vector3.zero){
-                playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.fixedDeltaTime * rotationSpeed);
-            }
+        if (viewDir != Vector3.zero){
+            orientation.forward = viewDir.normalized;
+        } else {
+            orientation.forward = player.forward;
         }
+
+        Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
+
+        if (inputDir != Vector3.zero){
+            playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.fixedDeltaTime * rotationSpeed);
+        }
+        
         
     }
 
