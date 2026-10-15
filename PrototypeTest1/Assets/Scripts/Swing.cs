@@ -1,5 +1,7 @@
 using NUnit.Framework;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Swing : MonoBehaviour
 {
@@ -32,18 +34,54 @@ public class Swing : MonoBehaviour
     public float extendCableSpeed = 10f; // Speed at which the cable extends
     public Transform orientation; // Reference to the player's orientation for thrust direction
 
+    [Header("Timers")]
+    public float maxSwingTime = 3f; //only allowed to swing for x seconds
+    public float elapsedTime = 0f;
+    public float swingCooldown = 0.5f; // Cooldown time between swings
+    public float swingTimer;
+    private float cooldownTimer;
+    public bool isCoolingDown = false;
+
+    [Header("UI")]
+    public Slider barSlider; // Prefab for the bar
+    public Image barImage; // Image component of the bar
+    public Color normalColor = Color.green; // Normal color of the bar
+    public Color cooldownColor = Color.red; // Color of the bar during cooldown
+
+ 
+    
+    void Start()
+    {
+        if (barImage != null)
+        {
+            barImage.color = normalColor;
+        }
+    }
 
     // Update is called once per frame
     void Update()
     {
-        if (Input.GetKeyDown(swingKey))
+        HandleCooldownAndBarUI();
+        if (Input.GetKeyDown(swingKey) && !isCoolingDown && swingTimer > 0f)
         {
             startSwing();
         }
-        else if (Input.GetKeyUp(swingKey))
+        else if (Input.GetKeyUp(swingKey) && movementScript.swinging)
         {
             stopSwing();
         }
+
+        
+        if (movementScript.swinging)
+        {
+            swingTimer -= Time.deltaTime;
+            if (swingTimer <= 0f)
+            {
+                swingTimer = 0f;
+                stopSwing(); 
+            }
+        }
+        
        
 
         checkSwingPoint();
@@ -66,7 +104,7 @@ public class Swing : MonoBehaviour
 
     void startSwing()
     {
-
+        
         if (springJoint != null)
         {
             
@@ -77,8 +115,10 @@ public class Swing : MonoBehaviour
             //nothing found to grapple
             return;
         }
-
         
+        elapsedTime = 0;
+
+        swingTimer = maxSwingTime;
 
 
         movementScript.activeGrapple = true;
@@ -132,6 +172,7 @@ public class Swing : MonoBehaviour
         {
             return;
         }
+        elapsedTime = 0f;
         movementScript.activeGrapple = false;
         movementScript.swinging = false;
         lineRenderer.positionCount = 0;
@@ -141,6 +182,13 @@ public class Swing : MonoBehaviour
         }
         
         springJoint = null;
+
+        isCoolingDown = true;
+        cooldownTimer = 0f;
+        if (barImage != null)
+        {
+            barImage.color = cooldownColor;
+        }
         /* if animation is used later
         // Stop the swing animation
         Animator animator = GetComponent<Animator>();
@@ -255,5 +303,29 @@ public class Swing : MonoBehaviour
         }
 
         predictionHit = raycastHit.point != Vector3.zero ? raycastHit : sphereCastHit;
+    }
+
+    void HandleCooldownAndBarUI()
+    {
+        if (isCoolingDown)
+        {
+            cooldownTimer += Time.deltaTime;
+            swingTimer = Mathf.Lerp(0f, maxSwingTime, cooldownTimer / swingCooldown);
+            if (cooldownTimer >= swingCooldown)
+            {
+                isCoolingDown = false;
+                swingTimer = maxSwingTime;
+                if (barImage != null)
+                {
+                    barImage.color = normalColor;
+                }
+            }
+        }
+
+        if (barSlider != null)
+        {
+            barSlider.value = swingTimer / maxSwingTime;
+        }
+
     }
 }
