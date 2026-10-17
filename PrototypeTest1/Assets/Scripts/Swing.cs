@@ -10,7 +10,7 @@ public class Swing : MonoBehaviour
     [Header("Swing Settings")]
     public float swingSpeed;
     public KeyCode swingKey = KeyCode.Mouse0; // Default to left mouse button
-    private float maxSwingDistance = 75f; // Maximum distance for the swing
+    public float maxSwingDistance = 40f; // Maximum distance for the swing
     private Vector3 swingPoint; // Point where the swing is aimed
     private SpringJoint springJoint; // Spring joint for the swing
     public PlayerMovement movementScript; // Reference to the PlayerMovement script

@@ -278,6 +278,7 @@ public class PlayerMovement : MonoBehaviour
         {
             state = MovementState.walking;
             desiredMoveSpeed = walkSpeed; // Set moveSpeed to walk speed
+
         }
         else
         {

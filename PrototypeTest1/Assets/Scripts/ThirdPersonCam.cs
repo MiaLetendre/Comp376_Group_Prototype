@@ -52,8 +52,8 @@ public class ThirdPersonCam : MonoBehaviour
 
     void Update()
     {
-        horizontalInput = -Input.GetAxis("Horizontal");
-        verticalInput = -Input.GetAxis("Vertical");
+        horizontalInput = Input.GetAxis("Horizontal");
+        verticalInput = Input.GetAxis("Vertical");
 
         //rotate orientation
         if (Input.GetKeyDown(KeyCode.Alpha1)){
@@ -69,18 +69,38 @@ public class ThirdPersonCam : MonoBehaviour
         
 
         //orientation of the camera, related to the player
-        Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
+        Vector3 camForward = thirdPersonCamera.transform.forward;
+        camForward.y = 0;
+        if (camForward.sqrMagnitude > 0.001f){
+            orientation.forward = camForward.normalized;
+        }
+        
+
+        //Vector3 viewDir = player.position - new Vector3(transform.position.x, player.position.y, transform.position.z);
+        //viewDir.y = 0;
+
+        Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
+
+        if (inputDir.sqrMagnitude > 0.001f){
+            Quaternion targetRotation = Quaternion.LookRotation(inputDir.normalized, Vector3.up);
+            playerObj.rotation = Quaternion.Slerp(playerObj.rotation, targetRotation, Time.fixedDeltaTime * rotationSpeed);
+        }
+        /*
         if (viewDir != Vector3.zero){
             orientation.forward = viewDir.normalized;
+            //orientation.forward = player.forward;
         } else {
+            //orientation.forward = viewDir.normalized;
             orientation.forward = player.forward;
         }
+        
 
         Vector3 inputDir = orientation.forward * verticalInput + orientation.right * horizontalInput;
 
         if (inputDir != Vector3.zero){
             playerObj.forward = Vector3.Slerp(playerObj.forward, inputDir.normalized, Time.fixedDeltaTime * rotationSpeed);
         }
+        */
         
         
     }

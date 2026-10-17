@@ -160,8 +160,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5032691736302584677}
-  - {fileID: 7644860910512679719}
   - {fileID: 8932667200374002196}
+  - {fileID: 7644860910512679719}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!54 &5428719792375439911
@@ -208,18 +208,26 @@ MonoBehaviour:
   walkSpeed: 10
   groundDrag: 1
   stopSpeedDamping: 0
+  gameCamera: {fileID: 0}
   whatIsGround:
     serializedVersion: 2
     m_Bits: 576
   playerHeight: 2
   grappleScript: {fileID: 5901411367885989036}
   sprintSpeed: 14
+  stepRayLower: {fileID: 0}
+  stepRayUpper: {fileID: 0}
+  stepHeight: 0.5
+  stepSmooth: 2
   swingSpeed: 15
   activeGrapple: 0
   swinging: 0
   jumpForce: 25
   jumpCooldown: 0.25
   airMultiplier: 0.5
+  fallMultiplier: 2.5
+  groundCheckDistance: 0.3
+  isGroundedRaw: 0
   jumpKey: 32
   sprintKey: 304
   desiredMoveSpeed: 0
@@ -242,6 +250,8 @@ MonoBehaviour:
   swingSpeed: 30
   swingKey: 323
   movementScript: {fileID: 3138736762010025400}
+  continuousForwardForce: 10
+  groundedUpwardForce: 5
   predictionSphereRadius: 1
   predictionPoint: {fileID: 3654391680844596194, guid: c961e7428b3918541a28d83850aa3cc0, type: 3}
   lineRenderer: {fileID: 1392888240547994454}
@@ -256,6 +266,15 @@ MonoBehaviour:
   rb: {fileID: 5428719792375439911}
   extendCableSpeed: 40
   orientation: {fileID: 7644860910512679719}
+  maxSwingTime: 3
+  elapsedTime: 0
+  swingCooldown: 0.5
+  swingTimer: 0
+  isCoolingDown: 0
+  barSlider: {fileID: 0}
+  barImage: {fileID: 0}
+  normalColor: {r: 0, g: 1, b: 0, a: 1}
+  cooldownColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!120 &1392888240547994454
 LineRenderer:
   serializedVersion: 3
