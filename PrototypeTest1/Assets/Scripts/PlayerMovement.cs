@@ -7,8 +7,8 @@ public class PlayerMovement : MonoBehaviour
     [Header("Movement")]
     public float moveSpeed;
     public Transform orientation;
-     float horizontalInput;
-     float verticalInput;
+    float horizontalInput;
+    float verticalInput;
     Vector3 moveDirection;
     Rigidbody rb;
     public float walkSpeed;
@@ -22,11 +22,11 @@ public class PlayerMovement : MonoBehaviour
     public LayerMask whatIsGround;
     bool grounded;
     public float playerHeight;
-    
-     // Reference to the PlayerMovementGrapple script
+
+    // Reference to the PlayerMovementGrapple script
     public Swing grappleScript;
 
-    [Header("Sprinting")]    
+    [Header("Sprinting")]
     public float sprintSpeed;
 
     [Header("Steps")]
@@ -42,7 +42,8 @@ public class PlayerMovement : MonoBehaviour
     public float swingSpeed;
     public bool activeGrapple;
     public bool swinging;
-    
+    private Vector3 startingPosition;
+
 
     [Header("Jumping")]
     public float jumpForce;
@@ -63,7 +64,7 @@ public class PlayerMovement : MonoBehaviour
     public float lastDesiredMoveSpeed;
     public bool jumping;
     public float lastY;
-    
+
 
     public MovementState state;
     public enum MovementState
@@ -79,17 +80,23 @@ public class PlayerMovement : MonoBehaviour
         //player falls over if we don't freeze rotation, so we freeze it
         rb = GetComponent<Rigidbody>();
         rb.freezeRotation = true;
+        startingPosition = rb.position;
 
 
         readyToJump = true;
     }
 
-   
+
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            ReturnToStartingPosition();
+        }
+
         //sphere casting instead of ray casting because it is more reliable for ground detection, especially on uneven terrain
-        Vector3 sphereCastOrigin = transform.position + Vector3.up * (groundCheckDistance + 0.1f); 
+        Vector3 sphereCastOrigin = transform.position + Vector3.up * (groundCheckDistance + 0.1f);
         float castDistance = playerHeight * .5f + groundCheckDistance;
         isGroundedRaw = Physics.SphereCast(sphereCastOrigin, groundCheckDistance, Vector3.down, out RaycastHit hit, castDistance, whatIsGround);
 
@@ -102,7 +109,7 @@ public class PlayerMovement : MonoBehaviour
             groundedTimer -= Time.deltaTime;
         }
         grounded = groundedTimer > 0f;
-        
+
         if (grounded && readyToJump)
         {
             rb.linearDamping = groundDrag;
@@ -117,12 +124,24 @@ public class PlayerMovement : MonoBehaviour
 
         MoveInput();
         SpeedControl();
-  
-        
 
-        
-            
-        
+
+
+
+
+
+    }
+
+    private void ReturnToStartingPosition()
+    {
+        if (grappleScript != null)
+        {
+            grappleScript.StopSwing();
+        }
+
+        rb.position = startingPosition;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
     }
 
     void FixedUpdate()
@@ -133,7 +152,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     //inputs for movements
-     private void MoveInput()
+    private void MoveInput()
     {
         horizontalInput = Input.GetAxisRaw("Horizontal");
         verticalInput = Input.GetAxisRaw("Vertical");
@@ -149,7 +168,7 @@ public class PlayerMovement : MonoBehaviour
 
             Invoke(nameof(resetJump), jumpCooldown);
         }
-        
+
     }
 
     //allows player to move
@@ -160,30 +179,33 @@ public class PlayerMovement : MonoBehaviour
         {
             return;
         }
-        
+
         //calculate movement direction
         moveDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
-        
+
         if (grounded)
         {
             if (moveDirection.magnitude > .01f)
             {
                 rb.AddForce(moveDirection.normalized * moveSpeed * 10f, ForceMode.Force);
-            } else{
+            }
+            else
+            {
                 //breaking when no input is given
                 Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-                Vector3 targetVel =Vector3.Lerp(flatVel, Vector3.zero, Time.fixedDeltaTime * stopSpeedDamping);
+                Vector3 targetVel = Vector3.Lerp(flatVel, Vector3.zero, Time.fixedDeltaTime * stopSpeedDamping);
                 rb.linearVelocity = new Vector3(targetVel.x, rb.linearVelocity.y, targetVel.z);
 
             }
-            
-        } else 
+
+        }
+        else
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * 10f * airMultiplier, ForceMode.Force);
         }
     }
 
-    
+
 
     //makes the player fall faster than the default gravity, giving a snappier feel to the jump
     void SnappyGravity()
@@ -212,15 +234,15 @@ public class PlayerMovement : MonoBehaviour
         RaycastHit hitUpper;
         Debug.DrawRay(stepRayLower.transform.position, movementDirection * 0.5f, Color.red);
         Debug.DrawRay(stepRayUpper.transform.position, movementDirection * 0.5f, Color.blue);
-        
+
         if (Physics.Raycast(stepRayLower.transform.position, movementDirection, out hitLower, 0.5f))
         {
             if (!Physics.Raycast(stepRayUpper.transform.position, -movementDirection, out hitUpper, 0.5f))
             {
-                Vector3 stepUpPosition = rb.position + Vector3.up * (stepHeight *Time.fixedDeltaTime * stepSmooth);
+                Vector3 stepUpPosition = rb.position + Vector3.up * (stepHeight * Time.fixedDeltaTime * stepSmooth);
                 rb.MovePosition(stepUpPosition);
 
-                if(rb.linearVelocity.y < 0f)
+                if (rb.linearVelocity.y < 0f)
                 {
                     rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
                 }
@@ -230,7 +252,8 @@ public class PlayerMovement : MonoBehaviour
     }
 
     //Controlls the player speed
-    void SpeedControl(){
+    void SpeedControl()
+    {
         //limit velocity on the x-z plane
         if (activeGrapple || swinging)
         {
@@ -238,7 +261,8 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-        if(flatVel.magnitude > moveSpeed){
+        if (flatVel.magnitude > moveSpeed)
+        {
             Vector3 limitedVel = flatVel.normalized * moveSpeed;
             Vector3 smoothedVel = Vector3.Lerp(flatVel, limitedVel, Time.fixedDeltaTime * 10f);
             rb.linearVelocity = new Vector3(smoothedVel.x, rb.linearVelocity.y, smoothedVel.z);
@@ -247,7 +271,8 @@ public class PlayerMovement : MonoBehaviour
     }
 
     //jump function
-    void goAheadAndJump(){
+    void goAheadAndJump()
+    {
         //reset y velocity
         rb.linearDamping = 0f;
         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
@@ -257,7 +282,8 @@ public class PlayerMovement : MonoBehaviour
     }
 
     //resets the jump
-    void resetJump(){
+    void resetJump()
+    {
         readyToJump = true;
     }
 
@@ -286,9 +312,9 @@ public class PlayerMovement : MonoBehaviour
 
             float currentSpeed = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z).magnitude;
             desiredMoveSpeed = Mathf.Max(currentSpeed, walkSpeed); // Set moveSpeed to current speed or walk speed, whichever is greater
-            //movement speed remains
-            
-           
+                                                                   //movement speed remains
+
+
         }
 
         /*
@@ -305,17 +331,17 @@ public class PlayerMovement : MonoBehaviour
         */
 
         //slowly lerp to the desired move speed, if the difference is too big, lerp slower
-        if (Mathf.Abs(desiredMoveSpeed- moveSpeed) >4f)
+        if (Mathf.Abs(desiredMoveSpeed - moveSpeed) > 4f)
         {
             moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 1f);
         }
         else
         {
-            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 2f);        
+            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 2f);
         }
     }
 
 
 
-    
+
 }

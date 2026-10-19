@@ -68,7 +68,7 @@ public class Swing : MonoBehaviour
         }
         else if (Input.GetKeyUp(swingKey) && movementScript.swinging)
         {
-            stopSwing();
+            StopSwing();
         }
 
         
@@ -78,7 +78,7 @@ public class Swing : MonoBehaviour
             if (swingTimer <= 0f)
             {
                 swingTimer = 0f;
-                stopSwing(); 
+                StopSwing();
             }
         }
         
@@ -166,7 +166,7 @@ public class Swing : MonoBehaviour
        
     }
 
-    void stopSwing()
+    public void StopSwing()
     {
         if (movementScript == null || !movementScript.activeGrapple || !movementScript.swinging)
         {
