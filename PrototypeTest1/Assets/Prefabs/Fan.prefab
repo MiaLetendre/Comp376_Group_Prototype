@@ -1400,7 +1400,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 40155bb088e9ca74d9882aba505b1fd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Fan
-  force: 1000
+  continuousForce: 50
+  entryBoost: 30
   radius: 1
   length: 5
   affectedLayers:

@@ -1,12 +1,17 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class Fan : MonoBehaviour
 {
-    [SerializeField] private float force = 1000f; // The force applied by the fan
-    [SerializeField] private float radius = 1f; // The radius of the fan's effect
-    [SerializeField] private float length = 5f; // The length of the fan's effect
-    [SerializeField] private LayerMask affectedLayers; // The layers that the fan affects
-    [SerializeField] private Transform fanCenter; // The center point of the fan's effect
+    [SerializeField] private float continuousForce = 1000f; // Force applied while riding inside the fan
+    [SerializeField] private float entryBoost = 30f; // Instant velocity burst when touching ANY part of the fan
+    [SerializeField] private float radius = 1f;
+    [SerializeField] private float length = 5f;
+    [SerializeField] private LayerMask affectedLayers;
+    [SerializeField] private Transform fanCenter;
+
+    // Tracks objects currently in the fan to detect exact entry moments
+    private HashSet<Collider> objectsInFan = new HashSet<Collider>();
 
     void FixedUpdate()
     {
@@ -16,6 +21,7 @@ public class Fan : MonoBehaviour
         Vector3 topPoint = fanCenter.position + (fanCenter.up * length);
 
         Collider[] colliders = Physics.OverlapCapsule(bottomPoint, topPoint, radius, affectedLayers);
+        HashSet<Collider> currentColliders = new HashSet<Collider>(colliders);
 
         foreach (Collider col in colliders)
         {
@@ -23,9 +29,28 @@ public class Fan : MonoBehaviour
 
             if (rb != null)
             {
-                rb.AddForce(fanCenter.up * force, ForceMode.Force);
+                // If this is the very first frame the player touched the fan
+                if (!objectsInFan.Contains(col))
+                {
+                    Vector3 currentVel = rb.linearVelocity;
+
+                    // Override falling momentum and apply the big burst instantly
+                    if (currentVel.y < entryBoost)
+                    {
+                        currentVel.y = entryBoost;
+                        rb.linearVelocity = currentVel;
+                    }
+                }
+                else
+                {
+                    // Add continuous draft force for every subsequent frame they remain inside
+                    rb.AddForce(fanCenter.up * continuousForce, ForceMode.Force);
+                }
             }
         }
+
+        // Store the colliders for the next frame's comparison
+        objectsInFan = currentColliders;
     }
 
     // Draws visuals in the Scene view when the object is selected
