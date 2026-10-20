@@ -23576,11 +23576,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: moveSpeed
-      value: 20
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: walkSpeed
-      value: 25
+      value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: gameCamera
@@ -23588,15 +23588,15 @@ PrefabInstance:
       objectReference: {fileID: 507466522}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: groundDrag
-      value: 4
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: stepHeight
-      value: 5
+      value: 0.35
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: stepSmooth
-      value: 3
+      value: 12
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: swingSpeed
@@ -23604,7 +23604,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: sprintSpeed
-      value: 35
+      value: 14
       objectReference: {fileID: 0}
     - target: {fileID: 3138736762010025400, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: playerHeight
@@ -23712,7 +23712,7 @@ PrefabInstance:
       objectReference: {fileID: 1894468643}
     - target: {fileID: 5901411367885989036, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: predictionSphereRadius
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5901411367885989036, guid: 3d6405c77d942204ea839aa496ae20ab, type: 3}
       propertyPath: predictionPointCrosshair
@@ -23753,14 +23753,6 @@ PrefabInstance:
       propertyPath: m_Camera
       value: 
       objectReference: {fileID: 330585545}
-    - target: {fileID: 1784777360399892122, guid: 9401cb7d612565146a9fb1c1d20624ce, type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1784777360399892122, guid: 9401cb7d612565146a9fb1c1d20624ce, type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2453815229460275028, guid: 9401cb7d612565146a9fb1c1d20624ce, type: 3}
       propertyPath: m_Pivot.x
       value: 0
@@ -23917,11 +23909,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 1299397061571481669, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: m_ControllerManager.Controllers.Array.data[0].Input.Gain
-      value: 6
+      value: 0.15
       objectReference: {fileID: 0}
     - target: {fileID: 1299397061571481669, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: m_ControllerManager.Controllers.Array.data[1].Input.Gain
-      value: -3
+      value: -0.15
       objectReference: {fileID: 0}
     - target: {fileID: 1457756297309962517, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: rb
@@ -23957,7 +23949,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1576195517231095471, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Lens.FieldOfView
-      value: 90
+      value: 65
       objectReference: {fileID: 0}
     - target: {fileID: 1576195517231095471, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Target.TrackingTarget
@@ -23969,11 +23961,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3455195491130624509, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: MinimumDistanceFromTarget
-      value: 1
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 3455195491130624509, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: AvoidObstacles.CameraRadius
-      value: 0
+      value: 0.35
       objectReference: {fileID: 0}
     - target: {fileID: 3455195491130624509, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: AvoidObstacles.MaximumEffort
@@ -23985,7 +23977,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3455195491130624509, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: AvoidObstacles.DampingWhenOccluded
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3455195491130624509, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: AvoidObstacles.UseFollowTarget.YOffset
@@ -24033,11 +24025,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7446202069193377877, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Radius
-      value: 10
+      value: 4.5
       objectReference: {fileID: 0}
     - target: {fileID: 7446202069193377877, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: TargetOffset.y
-      value: 1
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 7446202069193377877, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Orbits.Top.Height
@@ -24049,7 +24041,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7446202069193377877, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Orbits.Bottom.Height
-      value: -3.5
+      value: 0.4
       objectReference: {fileID: 0}
     - target: {fileID: 7446202069193377877, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Orbits.Bottom.Radius
@@ -24085,19 +24077,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7463353717292464338, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Damping.x
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7463353717292464338, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Damping.y
-      value: 0.5
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7463353717292464338, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Lookahead.Time
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7463353717292464338, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: Lookahead.Smoothing
-      value: 17
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8405184150450207101, guid: df1b3e9259a10904a91c006122194366, type: 3}
       propertyPath: m_Name

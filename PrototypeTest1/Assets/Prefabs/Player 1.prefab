@@ -203,22 +203,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f5a98af6e89f18744a40a216fd281247, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
-  moveSpeed: 15
+  moveSpeed: 8
   orientation: {fileID: 7644860910512679719}
-  walkSpeed: 10
-  groundDrag: 1
-  stopSpeedDamping: 0
+  walkSpeed: 8
+  groundDrag: 2
+  stopSpeedDamping: 40
   gameCamera: {fileID: 0}
   whatIsGround:
     serializedVersion: 2
-    m_Bits: 576
+    m_Bits: 577
   playerHeight: 2
   grappleScript: {fileID: 5901411367885989036}
   sprintSpeed: 14
   stepRayLower: {fileID: 0}
   stepRayUpper: {fileID: 0}
-  stepHeight: 0.5
-  stepSmooth: 2
+  stepHeight: 0.35
+  stepSmooth: 12
   swingSpeed: 15
   activeGrapple: 0
   swinging: 0

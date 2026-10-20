@@ -48,6 +48,12 @@ public class ThirdPersonCam : MonoBehaviour
         }
 
         switchCameraStyle(CameraStyle.Basic);
+
+        Camera mainCamera = Camera.main;
+        if (mainCamera != null && mainCamera.GetComponent<CameraCollision>() == null)
+        {
+            mainCamera.gameObject.AddComponent<CameraCollision>();
+        }
     }
 
     void Update()
