@@ -5,15 +5,15 @@ public class PlayerMovement : MonoBehaviour
 {
 
     [Header("Movement")]
-    public float moveSpeed;
+    public float moveSpeed = 8f;
     public Transform orientation;
     float horizontalInput;
     float verticalInput;
     Vector3 moveDirection;
     Rigidbody rb;
-    public float walkSpeed;
-    public float groundDrag;
-    public float stopSpeedDamping = 0f;
+    public float walkSpeed = 8f;
+    public float groundDrag = 2f;
+    public float stopSpeedDamping = 40f;
 
     [Header("Camera")]
     public CinemachineCamera gameCamera;
@@ -27,13 +27,13 @@ public class PlayerMovement : MonoBehaviour
     public Swing grappleScript;
 
     [Header("Sprinting")]
-    public float sprintSpeed;
+    public float sprintSpeed = 14f;
 
     [Header("Steps")]
     public GameObject stepRayLower;
     public GameObject stepRayUpper;
-    public float stepHeight = 0.5f;
-    public float stepSmooth = 2f;
+    public float stepHeight = 0.35f;
+    public float stepSmooth = 12f;
 
     [Header("Air Movement")]
 
@@ -96,9 +96,8 @@ public class PlayerMovement : MonoBehaviour
         }
 
         //sphere casting instead of ray casting because it is more reliable for ground detection, especially on uneven terrain
-        Vector3 sphereCastOrigin = transform.position + Vector3.up * (groundCheckDistance + 0.1f);
-        float castDistance = playerHeight * .5f + groundCheckDistance;
-        isGroundedRaw = Physics.SphereCast(sphereCastOrigin, groundCheckDistance, Vector3.down, out RaycastHit hit, castDistance, whatIsGround);
+        Vector3 sphereCastOrigin = transform.position + Vector3.up * 0.25f;
+        isGroundedRaw = Physics.SphereCast(sphereCastOrigin, 0.2f, Vector3.down, out RaycastHit hit, 0.35f, whatIsGround);
 
         if (isGroundedRaw)
         {
@@ -110,13 +109,13 @@ public class PlayerMovement : MonoBehaviour
         }
         grounded = groundedTimer > 0f;
 
-        if (grounded && readyToJump)
+        if (activeGrapple || swinging || !grounded)
         {
-            rb.linearDamping = groundDrag;
+            rb.linearDamping = 0f;
         }
         else
         {
-            rb.linearDamping = stopSpeedDamping;
+            rb.linearDamping = groundDrag;
         }
 
         float cleanYVelocity = Mathf.Abs(rb.linearVelocity.y) < 0.01f ? 0f : rb.linearVelocity.y;
@@ -160,7 +159,7 @@ public class PlayerMovement : MonoBehaviour
 
 
 
-        if (Input.GetKey(jumpKey) && readyToJump && grounded)
+        if (Input.GetKeyDown(jumpKey) && readyToJump && grounded && !activeGrapple && !swinging)
         {
             readyToJump = false;
 
@@ -191,11 +190,9 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
-                //breaking when no input is given
                 Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-                Vector3 targetVel = Vector3.Lerp(flatVel, Vector3.zero, Time.fixedDeltaTime * stopSpeedDamping);
-                rb.linearVelocity = new Vector3(targetVel.x, rb.linearVelocity.y, targetVel.z);
-
+                flatVel = Vector3.MoveTowards(flatVel, Vector3.zero, stopSpeedDamping * Time.fixedDeltaTime);
+                rb.linearVelocity = new Vector3(flatVel.x, rb.linearVelocity.y, flatVel.z);
             }
 
         }
@@ -229,23 +226,30 @@ public class PlayerMovement : MonoBehaviour
         }
 
         Vector3 movementDirection = orientation.forward * verticalInput + orientation.right * horizontalInput;
-
-        RaycastHit hitLower;
-        RaycastHit hitUpper;
-        Debug.DrawRay(stepRayLower.transform.position, movementDirection * 0.5f, Color.red);
-        Debug.DrawRay(stepRayUpper.transform.position, movementDirection * 0.5f, Color.blue);
-
-        if (Physics.Raycast(stepRayLower.transform.position, movementDirection, out hitLower, 0.5f))
+        if (movementDirection.sqrMagnitude < 0.01f)
         {
-            if (!Physics.Raycast(stepRayUpper.transform.position, -movementDirection, out hitUpper, 0.5f))
-            {
-                Vector3 stepUpPosition = rb.position + Vector3.up * (stepHeight * Time.fixedDeltaTime * stepSmooth);
-                rb.MovePosition(stepUpPosition);
+            return;
+        }
 
-                if (rb.linearVelocity.y < 0f)
-                {
-                    rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-                }
+        movementDirection.Normalize();
+        int stepMask = ~LayerMask.GetMask("Player");
+        float checkDistance = 0.45f;
+        Vector3 lowerOrigin = transform.position + Vector3.up * 0.08f;
+        Vector3 upperOrigin = transform.position + Vector3.up * (stepHeight + 0.08f);
+        Debug.DrawRay(lowerOrigin, movementDirection * checkDistance, Color.red);
+        Debug.DrawRay(upperOrigin, movementDirection * checkDistance, Color.blue);
+
+        bool lowerHit = Physics.Raycast(lowerOrigin, movementDirection, checkDistance, stepMask, QueryTriggerInteraction.Ignore);
+        bool upperBlocked = Physics.Raycast(upperOrigin, movementDirection, checkDistance, stepMask, QueryTriggerInteraction.Ignore);
+
+        if (lowerHit && !upperBlocked)
+        {
+            Vector3 stepUpPosition = rb.position + Vector3.up * (stepHeight * Time.fixedDeltaTime * stepSmooth);
+            rb.MovePosition(stepUpPosition);
+
+            if (rb.linearVelocity.y < 0f)
+            {
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             }
         }
 
@@ -295,7 +299,7 @@ public class PlayerMovement : MonoBehaviour
             state = MovementState.swinging;
             desiredMoveSpeed = swingSpeed; // Set moveSpeed to swingSpeed when swinging
         }
-        else if (grounded && Input.GetKey(KeyCode.LeftShift))
+        else if (grounded && (Input.GetKey(sprintKey) || Input.GetKey(KeyCode.RightShift)))
         {
             state = MovementState.sprinting;
             desiredMoveSpeed = sprintSpeed; // Set moveSpeed to sprint speed
@@ -330,15 +334,7 @@ public class PlayerMovement : MonoBehaviour
         }
         */
 
-        //slowly lerp to the desired move speed, if the difference is too big, lerp slower
-        if (Mathf.Abs(desiredMoveSpeed - moveSpeed) > 4f)
-        {
-            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 1f);
-        }
-        else
-        {
-            moveSpeed = Mathf.Lerp(moveSpeed, desiredMoveSpeed, Time.deltaTime * 2f);
-        }
+        moveSpeed = desiredMoveSpeed;
     }
 
 

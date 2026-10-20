@@ -1,5 +1,5 @@
-using NUnit.Framework;
-using Unity.VisualScripting;
+using TMPro;
+using Unity.Cinemachine;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -26,6 +26,7 @@ public class Swing : MonoBehaviour
     public LineRenderer lineRenderer; // Line renderer for the swing rope
     public Transform gunTip, cam, player; // Tip of the gun where the swing rope starts
     public LayerMask whatIsGrappleable; // Layer mask for grappleable objects
+    Camera aimCamera;
 
     [Header("Thrust Settings")]
     public float horizontalThrustForce; 
@@ -47,32 +48,75 @@ public class Swing : MonoBehaviour
     public Image barImage; // Image component of the bar
     public Color normalColor = Color.green; // Normal color of the bar
     public Color cooldownColor = Color.red; // Color of the bar during cooldown
+    TMP_Text swingTimeLabel;
 
  
     
+    void OnEnable()
+    {
+        CinemachineCore.CameraUpdatedEvent.AddListener(OnCameraUpdated);
+    }
+
+    void OnDisable()
+    {
+        CinemachineCore.CameraUpdatedEvent.RemoveListener(OnCameraUpdated);
+    }
+
     void Start()
     {
-        if (barImage != null)
+        if (cam != null)
         {
-            barImage.color = normalColor;
+            aimCamera = cam.GetComponent<Camera>();
         }
+
+        if (swingTimer <= 0f)
+        {
+            swingTimer = maxSwingTime;
+        }
+
+        if (barSlider != null)
+        {
+            barSlider.interactable = false;
+        }
+
+        BindSwingUi();
+        RefreshSwingBar();
+    }
+
+    void OnCameraUpdated(CinemachineBrain brain)
+    {
+        if (aimCamera != null && brain.OutputCamera != aimCamera)
+        {
+            return;
+        }
+
+        checkSwingPoint();
     }
 
     // Update is called once per frame
     void Update()
     {
-        HandleCooldownAndBarUI();
+        if (isCoolingDown)
+        {
+            cooldownTimer += Time.deltaTime;
+            swingTimer = Mathf.Lerp(0f, maxSwingTime, cooldownTimer / swingCooldown);
+            if (cooldownTimer >= swingCooldown)
+            {
+                isCoolingDown = false;
+                swingTimer = maxSwingTime;
+            }
+        }
+
         if (Input.GetKeyDown(swingKey) && !isCoolingDown && swingTimer > 0f)
         {
             startSwing();
         }
-        else if (Input.GetKeyUp(swingKey) && movementScript.swinging)
+        else if (Input.GetKeyUp(swingKey) && movementScript != null && movementScript.swinging)
         {
             StopSwing();
         }
 
-        
-        if (movementScript.swinging)
+        if (movementScript != null && movementScript.swinging)
         {
             swingTimer -= Time.deltaTime;
             if (swingTimer <= 0f)
@@ -81,11 +125,8 @@ public class Swing : MonoBehaviour
                 StopSwing();
             }
         }
-        
-       
 
-        checkSwingPoint();
-
+        RefreshSwingBar();
     }
 
     void FixedUpdate()
@@ -270,62 +311,127 @@ public class Swing : MonoBehaviour
             return;
         }
 
-        RaycastHit sphereCastHit;
-        //might need to cahnge  both thtese to cam.pos but will try this
-        Physics.SphereCast(cam.position, predictionSphereRadius, cam.forward, out sphereCastHit, maxSwingDistance, whatIsGrappleable);
-        RaycastHit raycastHit;
-        Physics.Raycast(cam.position, cam.forward, out raycastHit, maxSwingDistance, whatIsGrappleable);
-
-        Vector3 actualHitPoint = Vector3.zero;
-
-        if (raycastHit.point != Vector3.zero)
+        if (!TryGetAimRay(out Ray aimRay))
         {
-            actualHitPoint = raycastHit.point;
-        }
-        else if (sphereCastHit.point != Vector3.zero)
-        {
-            actualHitPoint = sphereCastHit.point;
+            return;
         }
 
-        if (actualHitPoint != Vector3.zero)
+        bool rayHit = Physics.Raycast(aimRay, out RaycastHit raycastHit, maxSwingDistance, whatIsGrappleable);
+        bool sphereHit = false;
+        RaycastHit sphereCastHit = default;
+        if (!rayHit && predictionSphereRadius > 0f)
+        {
+            sphereHit = Physics.SphereCast(aimRay, predictionSphereRadius, out sphereCastHit, maxSwingDistance, whatIsGrappleable);
+        }
+
+        bool hasHit = rayHit || sphereHit;
+        RaycastHit chosenHit = rayHit ? raycastHit : sphereCastHit;
+
+        if (hasHit)
         {
             if (predictionPoint != null)
             {
                 predictionPoint.gameObject.SetActive(true);
-                predictionPoint.position = actualHitPoint;
+                predictionPoint.position = chosenHit.point;
             }
         }
-        else
-        {   
-            if (predictionPoint != null){
-                predictionPoint.gameObject.SetActive(false);
-            }
+        else if (predictionPoint != null)
+        {
+            predictionPoint.gameObject.SetActive(false);
         }
 
-        predictionHit = raycastHit.point != Vector3.zero ? raycastHit : sphereCastHit;
+        predictionHit = hasHit ? chosenHit : default;
     }
 
-    void HandleCooldownAndBarUI()
+    bool TryGetAimRay(out Ray aimRay)
     {
-        if (isCoolingDown)
+        if (aimCamera == null && cam != null)
         {
-            cooldownTimer += Time.deltaTime;
-            swingTimer = Mathf.Lerp(0f, maxSwingTime, cooldownTimer / swingCooldown);
-            if (cooldownTimer >= swingCooldown)
+            aimCamera = cam.GetComponent<Camera>();
+        }
+
+        if (aimCamera != null)
+        {
+            aimRay = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            return true;
+        }
+
+        if (cam != null)
+        {
+            aimRay = new Ray(cam.position, cam.forward);
+            return true;
+        }
+
+        aimRay = default;
+        return false;
+    }
+
+    void BindSwingUi()
+    {
+        if (barSlider == null)
+        {
+            Slider[] sliders = FindObjectsByType<Slider>(FindObjectsSortMode.None);
+            for (int i = 0; i < sliders.Length; i++)
             {
-                isCoolingDown = false;
-                swingTimer = maxSwingTime;
-                if (barImage != null)
+                if (sliders[i].name == "Slider")
                 {
-                    barImage.color = normalColor;
+                    barSlider = sliders[i];
+                    break;
                 }
             }
         }
 
         if (barSlider != null)
         {
-            barSlider.value = swingTimer / maxSwingTime;
+            barSlider.interactable = false;
+            if ((barImage == null || barImage.rectTransform == barSlider.transform as RectTransform) && barSlider.fillRect != null)
+            {
+                barImage = barSlider.fillRect.GetComponent<Image>();
+            }
         }
 
+        if (swingTimeLabel == null)
+        {
+            TMP_Text[] labels = FindObjectsByType<TMP_Text>(FindObjectsSortMode.None);
+            for (int i = 0; i < labels.Length; i++)
+            {
+                if (labels[i].text.StartsWith("Swing Time"))
+                {
+                    swingTimeLabel = labels[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    void RefreshSwingBar()
+    {
+        if (barSlider == null || barImage == null || swingTimeLabel == null)
+        {
+            BindSwingUi();
+        }
+
+        float amount = maxSwingTime <= 0.01f ? 0f : Mathf.Clamp01(swingTimer / maxSwingTime);
+
+        if (barSlider != null)
+        {
+            barSlider.SetValueWithoutNotify(amount);
+        }
+
+        if (barImage != null)
+        {
+            barImage.type = Image.Type.Simple;
+            barImage.color = isCoolingDown ? cooldownColor : normalColor;
+            RectTransform fill = barImage.rectTransform;
+            fill.anchorMin = Vector2.zero;
+            fill.anchorMax = new Vector2(amount, 1f);
+            fill.offsetMin = Vector2.zero;
+            fill.offsetMax = Vector2.zero;
+        }
+
+        if (swingTimeLabel != null)
+        {
+            swingTimeLabel.text = "Swing Time  " + Mathf.CeilToInt(Mathf.Max(swingTimer, 0f));
+        }
     }
 }
